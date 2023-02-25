@@ -3,6 +3,7 @@ import json
 import csv
 import time
 import os
+import datetime
 
 # Get data from weather station
 def get_json(url):
@@ -29,7 +30,14 @@ if __name__ == '__main__':
     url = 'http://192.168.0.190/json'
     filename = "weather.csv"
     while True:
+        now = datetime.datetime.now()
+        if now.minute == 0: # wait until next hour
+            wait_time = 3600 - now.second # seconds until next hour
+        elif now.minute == 30: # wait until next half hour
+            wait_time = 1800 - now.second # seconds until next half hour
+        else: # wait until next half or full hour
+            wait_time = (30 - now.minute % 30) * 60 - now.second # seconds until next half or full hour
+        time.sleep(wait_time)
         data = get_json(url)
         save_to_csv(data, filename)
         print(f'Data saved to {filename} at {time.strftime("%H:%M:%S")}')
-        time.sleep(1800)  # wait 30 minutes (1800 seconds)
