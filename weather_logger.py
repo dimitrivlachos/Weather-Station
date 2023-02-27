@@ -28,7 +28,7 @@ def save_to_csv(data, filename):
 if __name__ == '__main__':
     print(os.getcwd())
     url = 'http://192.168.0.190/json'
-    filename = "weather.csv"
+    filename = "data/weather.csv"
     while True:
         now = datetime.datetime.now()
         if now.minute % 30 == 0:
