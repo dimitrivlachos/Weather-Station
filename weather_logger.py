@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # run every 30 minutes
     while True:
         now = datetime.datetime.now()
-        if now.minute == 0 or now.minute == 30:
+        if now.minute % 30 == 0:
             data = get_json(url)
             save_to_csv(data, filename)
             print(f'Data saved to {filename} at {time.strftime("%H:%M:%S")}')
