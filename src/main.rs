@@ -1,62 +1,59 @@
+use serde::{Serialize, Deserialize};
 use chrono::{DateTime, Utc};
-use csv::{Writer, WriterBuilder};
-use reqwest::{Client, Error};
-use serde::{Deserialize, Serialize};
+use std::fs::OpenOptions;
+use std::io::{Write, Result};
+use std::path::Path;
+use reqwest;
 
-#[derive(Deserialize)]
+// Struct to hold the readings from the ESP8266
+#[derive(Serialize, Deserialize, Debug)]
 struct Readings {
     temperature: f32,
     humidity: f32,
     pressure: f32,
 }
 
-#[derive(Deserialize)]
-struct Response {
-    Readings: Readings,
+// Makes a request to the ESP8266 and returns the readings
+async fn make_request() -> std::result::Result<Readings, reqwest::Error> {
+    let response = reqwest::Client::new()
+    .get("http://192.168.0.190/json")
+    .send()
+    .await?;
+
+    let json_str = response.text().await?;
+    let json: serde_json::Value = serde_json::from_str(&json_str).unwrap();
+    let reading: Readings = serde_json::from_value(json["Readings"].clone()).unwrap();
+
+    Ok(reading)
 }
 
-#[derive(Serialize)]
-struct ReadingRecord {
-    timestamp: String,
-    temperature: f32,
-    humidity: f32,
-    pressure: f32,
-}
+// Writes the data obtained from the make_request() function to a CSV file
+fn write_to_csv(data: &Readings) -> Result<()> {
+    let path = Path::new("data/weather.csv");
 
-async fn get_readings(client: &Client) -> Result<Readings, Error> {
-    let response = client.get("http://192.168.0.190/json").send().await?;
-    let response_text = response.text().await?;
-    let response: Response = serde_json::from_str(&response_text)?;
-    Ok(response.Readings)
-}
+    // Check if file exists, if not create it and add headers
+    let mut file = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .append(true)
+        .open(path)?;
 
-fn save_reading(csv_writer: &mut Writer<&mut std::fs::File>, readings: &Readings, timestamp: DateTime<Utc>) -> Result<(), csv::Error> {
-    let record = ReadingRecord {
-        timestamp: timestamp.to_rfc3339(),
-        temperature: readings.temperature,
-        humidity: readings.humidity,
-        pressure: readings.pressure,
-    };
-    csv_writer.serialize(record)?;
-    csv_writer.flush()?;
+    if file.metadata()?.len() == 0 {
+        writeln!(file, "timestamp,temperature,humidity,pressure")?;
+    }
+
+    // Get the current UTC time
+    let timestamp: DateTime<Utc> = Utc::now();
+
+    // Write the data with timestamp to the CSV file
+    writeln!(file, "{},{},{},{}", timestamp, data.temperature, data.humidity, data.pressure)?;
+
     Ok(())
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
-    let csv_path = "readings.csv";
-    let file = std::fs::OpenOptions::new().write(true).create(true).open(csv_path)?;
-    let mut csv_writer = WriterBuilder::new().has_headers(false).from_writer(file);
-
-    let client = Client::new();
-    loop {
-        let readings = get_readings(&client).await?;
-        let timestamp = Utc::now();
-        // if there is an error, just print it and continue
-        if let Err(e) = save_reading(&mut csv_writer, &readings, timestamp) {
-            println!("Error saving reading: {}", e);
-        }
-
-        tokio::time::delay_for(std::time::Duration::from_secs(30 * 60)).await;
-    }
+async fn main(){    
+    // Make the request and write the data to the CSV file
+    let reading = make_request().await.unwrap();
+    _ = write_to_csv(&reading);
 }
