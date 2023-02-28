@@ -155,9 +155,9 @@ void setup() {
   IP = WiFi.localIP().toString();
   Serial.println(IP);
 
-  server.on("/", get_index);     // Get the index page on root route
-  server.on("/json", get_json);  // Get the json data on the '/json' routeserver.on("/waterplant", sendWaterCommand); // Activates te sendWaterCommand to send to the monitor node
-  server.on("/toggleIP", toggle_ip);     // Get the index page on root route
+  server.on("/", get_index);     // Get the index page
+  server.on("/json", get_json);  // Get the json data
+  server.on("/toggleIP", toggle_ip);  // Toggle IP address display
 
   server.begin();  //Start the server
   Serial.println("Server listening");
