@@ -18,10 +18,12 @@ def plot_data(df):
     ax[1].set_ylabel('Humidity (%)')
     ax[2].plot(df['timestamp'], df['pressure'], 'g')
     ax[2].set_ylabel('Pressure (hPa)')
-    ax[2].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    # format x-axis ticks as dates
+    ax[2].xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
     # angle x-axis labels
     plt.setp(ax[2].xaxis.get_majorticklabels(), rotation=45)
-    ax[2].xaxis.set_major_locator(mdates.MinuteLocator(interval=30))
+    # set x-axis ticks every day
+    ax[2].xaxis.set_major_locator(mdates.DayLocator())
     
     # Save plot to file
     plt.savefig('data/weather.png', dpi=300)
